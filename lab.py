@@ -148,7 +148,35 @@ class Blob:
         """
         return self.bbox.y
 
-    
+    def set_x(self, x):
+        """
+        change x pos
+        """
+        self.pos[0] = x
+        self.bbox.x = x
+
+    def set_y(self, y):
+        """
+        change y pos
+        """
+        self.pos[1] = y
+        self.bbox.y = y
+
+    def resting(self, blobs):
+        """
+        if this is a soft blob, determines whether it is resting
+        on a hard blob
+        """
+        # for all of the blobs, if it is a hard blob, check if 
+        # y position of self - TILE == blob y aka it is resting
+        for b in blobs:
+            if b.hard:
+                if self.pos[1] - Constants.TILE_SIZE == b.pos[1]:
+                    return True
+        return False
+
+    def __str__(self):
+        return self.name + ' at position ' + str(self.pos)
 
 class Game:
     def __init__(self, levelmap):
@@ -190,7 +218,8 @@ class Game:
                     self.player = Blob(char, Constants.TEXTURE_MAP[char], x, y, Constants.TILE_SIZE, Constants.TILE_SIZE)
                     self.player.hard = False
                     self.player.gravity = True
-                if char == '=':
+                # if char == '=':
+                elif char != ' ':
                     # self.characters.append([char, [x,y]])
                     # character =   {'name': char,
                     #                'pos': [x,y],
@@ -212,7 +241,47 @@ class Game:
     def timestep(self, keys):
         """Simulate the evolution of the game state over one time step.
         `keys` is a list of currently pressed keys."""
-        raise NotImplementedError
+        # raise NotImplementedError
+        if self.player.vertical + Constants.GRAVITY > -Constants.MAX_DOWNWARDS_SPEED:
+            self.player.vertical += Constants.GRAVITY
+        else:
+            diff = -Constants.MAX_DOWNWARDS_SPEED - self.player.vertical
+            self.player.vertical += diff
+        self.player.set_y(self.player.get_y() + self.player.vertical)
+
+        for char in self.characters:
+            if not char.hard:
+                if char.vertical + Constants.GRAVITY > -Constants.MAX_DOWNWARDS_SPEED:
+                    char.vertical += Constants.GRAVITY
+                else:
+                    diff = -Constants.MAX_DOWNWARDS_SPEED - char.vertical
+                    char.vertical += diff
+
+
+        # for char in self.characters:
+        #     if not char.hard:
+        #         if not char.resting(self.characters):
+        #             # char.set_y(char.get_y() - Constants.GRAVITY) if char.get_y() < Constants.MAX_DOWNWARDS_SPEED else char.set_y(Constants.MAX_DOWNWARDS_SPEED)
+        #             # char.vertical = char.vertical + Constants.GRAVITY if char.vertical > -Constants.MAX_DOWNWARDS_SPEED else Constants.MAX_DOWNWARDS_SPEED
+        #             if char.vertical + Constants.GRAVITY > -Constants.MAX_DOWNWARDS_SPEED:
+        #                 print('less')
+        #                 char.vertical += Constants.GRAVITY
+        #             else:
+        #                 print('more')
+        #                 diff = -Constants.MAX_DOWNWARDS_SPEED - char.vertical
+        #                 char.vertical += diff
+        #             char.set_y(char.get_y() + char.vertical)
+
+        # if not self.player.resting(self.characters):
+        #     # self.player.vertical = self.player.vertical + Constants.GRAVITY if self.player.vertical > -Constants.MAX_DOWNWARDS_SPEED else self.player.vertical
+        #     if self.player.vertical + Constants.GRAVITY > -Constants.MAX_DOWNWARDS_SPEED:
+        #         self.player.vertical += Constants.GRAVITY
+        #     else:
+        #         diff = -Constants.MAX_DOWNWARDS_SPEED - self.player.vertical
+        #         self.player.vertical += diff
+        #     print(self.player.vertical)
+        #     self.player.set_y(self.player.get_y() + self.player.vertical)
+        #     print(self.player.pos)
 
     def render(self, w, h):
         """Report status and list of blob dictionaries for blobs
