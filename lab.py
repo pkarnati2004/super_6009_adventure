@@ -104,7 +104,48 @@ class Rectangle:
         rectangle [0, 0, 1, 1] does not intersect either of [0, 1, 1, 1]
         or [1, 0, 1, 1].
         """
-        raise NotImplementedError
+        # raise NotImplementedError
+
+        # # flip self and other if one is not lower than the other
+        # if self.x < other.x:
+        #     self, other = other, self
+        # if self.y < other.y:
+        #     self, other = other, self
+
+        # # check corners from left
+        # if self.x < other.x and other.x < self.x + self.w:
+        #     if self.y < other.y and other.y < self.y + self.h:
+        #         return True
+        #     if self.y < other.y + other.h and other.y + other.h < self.y + self.h:
+        #         return True
+        
+        # # check corners from right
+        # if self.x < other.x + other.w and other.x + other.w < self.x + self.w:
+        #     if self.y < other.y and other.y < self.y + self.h:
+        #         return True
+        #     if self.y < other.y + other.h and other.y + other.h < self.y + self.h:
+        #         return True
+
+        # check corners from left
+        if self.x < other.x:
+            if (self.x + self.w) > other.x:
+                if self.y < other.y:
+                    if (self.y + self.h) > other.y:
+                        return True
+                elif self.y < (other.y + other.h):
+                    return True
+        
+        # check corners from right
+        elif self.x < (other.x + other.w):
+            if self.y < other.y:
+                if other.y < (self.y + self.h):
+                    return True
+            elif self.y < (other.y + other.h):
+                return True
+
+            
+
+        return False
 
     @staticmethod
     def translationvector(r1, r2):
@@ -119,7 +160,54 @@ class Rectangle:
         When two pairs ``(x, y)`` and ``(y, x)`` are tied, return the
         one whose first element has the smallest magnitude.
         """
-        raise NotImplementedError
+        # raise NotImplementedError
+        if not r1.intersects(r2):
+            return None
+
+        right = r1.x + r1.w - r2.x
+        left = -(r2.x + r2.w - r1.x)
+        up = r1.y + r1.h - r2.y
+        down = -(r2.y + r2.h - r1.y)
+
+        # y min
+        min_val = float('inf')
+        miny = None
+        for y in (up, down):
+            if 0 + abs(y) < min_val:
+                min_val = 0 + abs(y)
+                miny = y
+        # print(0, miny)
+
+        # x min
+        min_val = float('inf')
+        minx = None
+        for x in (left, right):
+            if abs(x) + 0 < min_val:
+                min_val = abs(x) + 0
+                minx = x
+        # print(minx, 0)
+
+        # print(right, left, up, down)
+
+        if sum([abs(minx), 0]) == sum([0, abs(miny)]):
+            if abs(minx) < abs(0):
+                return (minx, 0)
+            else:
+                return (0, miny)
+        elif sum([abs(minx), 0]) < sum([0, abs(miny)]):
+            return (minx, 0)
+        else:
+            return (0, miny)
+        
+        return 'hello'
+
+
+
+    def __str__(self):
+        return 'x: ' + str(self.x) + ' y: ' + str(self.y) + ' w: ' + str(self.w) + ' h: ' + str(self.h)
+
+r1, r2 = Rectangle(0, 119, 128, 128), Rectangle(0, 0, 128, 128)
+print(r2.intersects(r1))
 
 class Blob:
     """ a blob class to handle objects in the game """
@@ -200,7 +288,9 @@ class Game:
         # a list of lists, with chars to positions
         self.characters = []
         self.player = []
-        self.hard_blobs = ['B', 'C', 'c', '=', 's', 't', 'w']
+        self.hard = ['B', 'C', 'c', '=', 's', 't', 'w']
+        self.hard_blobs = []
+        self.soft_blobs = []
         self.gravity = ['f', 'h', 'm', 'p', 'o']
 
         rev = reversed(levelmap)
@@ -210,44 +300,72 @@ class Game:
             x = 0
             for char in line:
                 if char == 'p':
-                    # self.player = [char, [x,y]]
-                    # self.player = {'name': char,
-                    #                'pos': [x,y],
-                    #                'vertical': 0,
-                    #                'horiztonal': 0}
                     self.player = Blob(char, Constants.TEXTURE_MAP[char], x, y, Constants.TILE_SIZE, Constants.TILE_SIZE)
                     self.player.hard = False
                     self.player.gravity = True
-                # if char == '=':
+                    self.soft_blobs.append(self.player)
                 elif char != ' ':
-                    # self.characters.append([char, [x,y]])
-                    # character =   {'name': char,
-                    #                'pos': [x,y],
-                    #                'vertical': 0,
-                    #                'horiztonal': 0}
-                    # self.characters.append(character)
                     character = Blob(char, Constants.TEXTURE_MAP[char], x, y, Constants.TILE_SIZE, Constants.TILE_SIZE)
-                    if char in self.hard_blobs:
+                    if char in self.hard:
                         character.hard = True
                     if char in self.gravity:
                         character.gravity = True
                     self.characters.append(character)
+                    if character.hard:
+                        self.hard_blobs.append(character)
+                    else:
+                        self.soft_blobs.append(character)
                 x += Constants.TILE_SIZE
             y += Constants.TILE_SIZE
         
-        # print(self.characters)
-        # print(self.player)
 
     def timestep(self, keys):
         """Simulate the evolution of the game state over one time step.
         `keys` is a list of currently pressed keys."""
         # raise NotImplementedError
+        
+        # player events
+
+        horizontal_acceleration = 0
+        if keys:
+            for event in keys:
+                if event == 'up':
+                    self.player.vertical = Constants.PLAYER_JUMP_SPEED
+                elif event == 'left':
+                    horizontal_acceleration = -Constants.PLAYER_HORIZONTAL_ACCELERATION
+                elif event == 'right':
+                    horizontal_acceleration = Constants.PLAYER_HORIZONTAL_ACCELERATION
+
+        horizontal, drag = self.player.horizontal + horizontal_acceleration, 0
+        if horizontal < 0:
+            drag = Constants.PLAYER_DRAG
+            if drag > abs(horizontal): drag = horizontal
+        elif horizontal > 0:
+            drag = -Constants.PLAYER_DRAG
+            if abs(drag) > horizontal: drag = -horizontal
+
+        horizontal += drag
+        
+        if horizontal < 0 and horizontal < -Constants.PLAYER_MAX_HORIZONTAL_SPEED:
+            diff = -Constants.PLAYER_MAX_HORIZONTAL_SPEED - horizontal
+            horizontal += diff
+        elif horizontal > 0 and horizontal > Constants.PLAYER_MAX_HORIZONTAL_SPEED:
+            diff = Constants.PLAYER_MAX_HORIZONTAL_SPEED - horizontal
+            horizontal += diff
+
+        self.player.horizontal = horizontal
+        self.player.set_x(self.player.get_x() + self.player.horizontal)
+
         if self.player.vertical + Constants.GRAVITY > -Constants.MAX_DOWNWARDS_SPEED:
             self.player.vertical += Constants.GRAVITY
         else:
             diff = -Constants.MAX_DOWNWARDS_SPEED - self.player.vertical
             self.player.vertical += diff
         self.player.set_y(self.player.get_y() + self.player.vertical)
+
+
+
+        # other character events
 
         for char in self.characters:
             if not char.hard:
@@ -258,30 +376,26 @@ class Game:
                     char.vertical += diff
 
 
-        # for char in self.characters:
-        #     if not char.hard:
-        #         if not char.resting(self.characters):
-        #             # char.set_y(char.get_y() - Constants.GRAVITY) if char.get_y() < Constants.MAX_DOWNWARDS_SPEED else char.set_y(Constants.MAX_DOWNWARDS_SPEED)
-        #             # char.vertical = char.vertical + Constants.GRAVITY if char.vertical > -Constants.MAX_DOWNWARDS_SPEED else Constants.MAX_DOWNWARDS_SPEED
-        #             if char.vertical + Constants.GRAVITY > -Constants.MAX_DOWNWARDS_SPEED:
-        #                 print('less')
-        #                 char.vertical += Constants.GRAVITY
-        #             else:
-        #                 print('more')
-        #                 diff = -Constants.MAX_DOWNWARDS_SPEED - char.vertical
-        #                 char.vertical += diff
-        #             char.set_y(char.get_y() + char.vertical)
 
-        # if not self.player.resting(self.characters):
-        #     # self.player.vertical = self.player.vertical + Constants.GRAVITY if self.player.vertical > -Constants.MAX_DOWNWARDS_SPEED else self.player.vertical
-        #     if self.player.vertical + Constants.GRAVITY > -Constants.MAX_DOWNWARDS_SPEED:
-        #         self.player.vertical += Constants.GRAVITY
-        #     else:
-        #         diff = -Constants.MAX_DOWNWARDS_SPEED - self.player.vertical
-        #         self.player.vertical += diff
-        #     print(self.player.vertical)
-        #     self.player.set_y(self.player.get_y() + self.player.vertical)
-        #     print(self.player.pos)
+        
+        # # collison resolution
+
+        
+
+        for soft in self.soft_blobs:
+            for hard in self.hard_blobs:
+                print(soft.bbox)
+                print(hard.bbox)
+                print(soft.bbox.intersects(hard.bbox))
+                print(hard.bbox.intersects(soft.bbox))
+                if soft.bbox.intersects(hard.bbox):
+                    (deltax, deltay) = Rectangle.translationvector(hard.bbox, soft.bbox)
+                    soft.set_x(soft.bbox.x+ deltax)
+                    soft.set_y(soft.bbox.y+ deltay)
+
+        print(self.hard_blobs[0])
+        print(self.soft_blobs[0])
+        
 
     def render(self, w, h):
         """Report status and list of blob dictionaries for blobs
@@ -289,36 +403,26 @@ class Game:
         for details."""
         # raise NotImplementedError
         valid_blob_dicts = []
-        # player = {'texture': Constants.TEXTURE_MAP['p'],
-        #           'pos': self.player[1],
-        #           'player': True}
-
-        # player = {'texture': Constants.TEXTURE_MAP['p'],
-        #           'pos': self.player['pos'],
-        #           'player': True}
 
         player = {'texture': self.player.texture,
                   'pos': self.player.pos,
                   'player': True}
-        # valid_blob_dicts.append(player)
-        # if -Constants.TILE_SIZE < self.player[1][1] and self.player[1][1] < h:
-        # if -Constants.TILE_SIZE < self.player['pos'][1] and self.player['pos'][1] < h:
         if -Constants.TILE_SIZE < self.player.pos[1] and self.player.pos[1] < h:
             valid_blob_dicts.append(player)
-        # px = self.player[1][0]
 
-        # px = self.player['pos'][0]
-        
         px = self.player.pos[0]
 
+        screen = Rectangle(self.player.pos[0] - w//2, self.player.pos[1] - h//2, w, h)
+
+        # print(screen)
+        # print(self.player)
+
         for char in self.characters:
-            # blob, pos = char
-            # blob, pos = char['name'], char['pos']
             blob, pos = char.name, char.pos
             if px - w//2 - Constants.TILE_SIZE < pos[0] and pos[0] < px + w//2 and -Constants.TILE_SIZE < pos[1] and pos[1] < h:
-                # blob_dict = {'texture': Constants.TEXTURE_MAP[blob],
-                #              'pos': pos,
-                #              'player': False}
+            # print(char.bbox)
+            # print('intersection', screen.intersects(char.bbox))
+            # if screen.intersects(char.bbox):
                 blob_dict = {'texture': char.texture,
                              'pos': pos,
                              'player': False}
