@@ -106,26 +106,6 @@ class Rectangle:
         """
         # raise NotImplementedError
 
-        # # flip self and other if one is not lower than the other
-        # if self.x < other.x:
-        #     self, other = other, self
-        # if self.y < other.y:
-        #     self, other = other, self
-
-        # # check corners from left
-        # if self.x < other.x and other.x < self.x + self.w:
-        #     if self.y < other.y and other.y < self.y + self.h:
-        #         return True
-        #     if self.y < other.y + other.h and other.y + other.h < self.y + self.h:
-        #         return True
-        
-        # # check corners from right
-        # if self.x < other.x + other.w and other.x + other.w < self.x + self.w:
-        #     if self.y < other.y and other.y < self.y + self.h:
-        #         return True
-        #     if self.y < other.y + other.h and other.y + other.h < self.y + self.h:
-        #         return True
-
         # check corners from left
         if self.x < other.x:
             if (self.x + self.w) > other.x:
@@ -143,8 +123,7 @@ class Rectangle:
             elif self.y < (other.y + other.h):
                 return True
 
-            
-
+        
         return False
 
     @staticmethod
@@ -382,20 +361,35 @@ class Game:
 
         
 
+        # for soft in self.soft_blobs:
+        #     for hard in self.hard_blobs:
+        #         if soft.bbox.intersects(hard.bbox):
+        #             (deltax, deltay) = Rectangle.translationvector(hard.bbox, soft.bbox)
+        #             soft.set_x(soft.bbox.x+ deltax)
+        #             soft.set_y(soft.bbox.y+ deltay)
+
+
+        # vertical collisions first
         for soft in self.soft_blobs:
             for hard in self.hard_blobs:
-                print(soft.bbox)
-                print(hard.bbox)
-                print(soft.bbox.intersects(hard.bbox))
-                print(hard.bbox.intersects(soft.bbox))
+                if soft.bbox.intersects(hard.bbox):
+                    (deltax, deltay) = Rectangle.translationvector(hard.bbox, soft.bbox)
+                    if deltax == 0:
+                        soft.set_x(soft.bbox.x+ deltax)
+                        soft.set_y(soft.bbox.y+ deltay)
+                        if deltay != 0 and soft.vertical*deltay < 0:
+                            soft.vertical = 0
+
+        # horizontal collisons second
+        for soft in self.soft_blobs:
+            for hard in self.hard_blobs:
                 if soft.bbox.intersects(hard.bbox):
                     (deltax, deltay) = Rectangle.translationvector(hard.bbox, soft.bbox)
                     soft.set_x(soft.bbox.x+ deltax)
                     soft.set_y(soft.bbox.y+ deltay)
+                    if deltax != 0 and soft.horizontal*deltax < 0:
+                        soft.horizontal = 0
 
-        print(self.hard_blobs[0])
-        print(self.soft_blobs[0])
-        
 
     def render(self, w, h):
         """Report status and list of blob dictionaries for blobs
